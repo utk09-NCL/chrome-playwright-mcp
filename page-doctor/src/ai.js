@@ -1,16 +1,13 @@
 import 'dotenv/config';
 import { fileURLToPath } from 'node:url';
 import OpenAI from 'openai';
+import { GoogleGenAI } from "@google/genai";
 
 /**
  * Shared AI helper for routing prompts to the configured provider.
- * It supports Gemini and OpenAI-compatible backends such as OpenAI, LM Studio, Ollama, and custom endpoints.
+ * Supports Gemini by default and OpenAI-compatible backends such as OpenAI, LM Studio, Ollama, and custom endpoints.
  */
 const AI_PROVIDER = (process.env.AI_PROVIDER || 'gemini').toLowerCase();
-
-// Google's Interactions API endpoint
-const GEMINI_BASE_URL =
-  process.env.GEMINI_BASE_URL || 'https://generativelanguage.googleapis.com/v1beta';
 
 const DEFAULT_MODELS = {
   gemini: 'gemini-3.1-flash-lite',
@@ -61,6 +58,14 @@ function createOpenAIClient() {
 }
 
 /**
+ * Create a Gemini client for the selected AI provider.
+ * @returns {GoogleGenAI} A configured Gemini client instance.
+ */
+function createGeminiClient() {
+  return new GoogleGenAI({ apiKey: requireKey('GEMINI_API_KEY') });
+}
+
+/**
  * Ensure that a required environment variable exists.
  * @param {string} name - The environment variable name to check.
  * @returns {string} The resolved API key or endpoint value.
@@ -105,45 +110,30 @@ function extractInteractionText(interaction) {
 }
 
 /**
- * Send a prompt to the Gemini API and return the generated text.
+ * Send a prompt to the Gemini SDK and return the generated text.
  * @param {string} systemPrompt - Optional system instructions for the model.
  * @param {string} userPrompt - The user-facing prompt to answer.
  * @param {object} options - Request settings such as schema and token limits.
  * @returns {Promise<string>} The model response as plain text.
  */
 async function askGemini(systemPrompt, userPrompt, { schema, temperature, maxOutputTokens }) {
-  const body = {
+  const client = createGeminiClient();
+
+  const interaction = await client.interactions.create({
     model: getModelName(),
+    system_instruction: systemPrompt,
     input: userPrompt,
     generation_config: {
-      temperature,
-      ...(maxOutputTokens ? { max_output_tokens: maxOutputTokens } : {})
-    }
-  };
-
-  if (systemPrompt) body.system_instruction = systemPrompt;
-
-  if (schema) body.response_format = schema;
-
-  const response = await fetch(`${GEMINI_BASE_URL}/interactions`, {
-    method: 'POST',
-    headers: {
-      'x-goog-api-key': requireKey('GEMINI_API_KEY'),
-      'Content-Type': 'application/json'
+      "temperature" : temperature,
+      "max_output_tokens" : maxOutputTokens
     },
-    body: JSON.stringify(body)
+    response_format:{
+      "type" : "text",
+      "schema" : schema || undefined
+    }
   });
 
-  const data = await response.json().catch(() => null);
-
-  if (!response.ok) {
-    const message = data?.error?.message || `HTTP ${response.status}`;
-    const error = new Error(message);
-    error.status = response.status;
-    throw error;
-  }
-
-  const text = extractInteractionText(data);
+  const text = extractInteractionText(interaction);
 
   if (!text) {
     throw new Error(
@@ -183,7 +173,7 @@ async function askOpenAICompatible(systemPrompt, userPrompt, { temperature, maxO
  * Send a prompt to the configured AI provider with built-in retry handling.
  * @param {string} systemPrompt - Optional system instructions.
  * @param {string} userPrompt - The prompt to send to the model.
- * @param {object} [options] - Optional settings such as temperature, token limits, and retries.
+ * @param {object} [options] - Optional settings such as temperature, token limits, schema, and retries.
  * @returns {Promise<string>} The final model response.
  */
 export async function askAI(systemPrompt, userPrompt, options = {}) {
