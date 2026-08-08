@@ -3,13 +3,15 @@
   "version": "1.0.0",
   "description": "AI-powered page auditor built on the Chrome DevTools Protocol",
   "type": "module",
-  "main": "src/diagnose.js",
+  "main": "src/diagnose.ts",
   "scripts": {
-    "diagnose": "node src/diagnose.js",
-    "demo": "node src/demo.js",
-    "compare": "node src/compare.js",
-    "test-ai": "node src/ai.js",
-    "test-setup": "node src/test-setup.js"
+    "diagnose": "tsx src/diagnose.ts",
+    "demo": "tsx src/demo.ts",
+    "compare": "tsx src/compare.ts",
+    "test-ai": "tsx src/ai.ts",
+    "test-setup": "tsx src/test-setup.ts",
+    "typecheck": "tsc --noEmit",
+    "build": "tsc"
   },
   "keywords": [
     "chrome-devtools-protocol",
@@ -31,5 +33,10 @@
     "dotenv": "^16.4.5",
     "openai": "^4.28.0",
     "playwright": "^1.42.0"
+  },
+  "devDependencies": {
+    "@types/node": "^26.2.0",
+    "tsx": "^4.23.11",
+    "typescript": "^7.0.2"
   }
 }

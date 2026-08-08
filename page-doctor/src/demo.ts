@@ -12,9 +12,9 @@ const demoDir = path.join(here, '..', 'demo');
  * Start a local demo server that serves the intentionally broken example page.
  * @returns {Promise<import('node:http').Server>} A listening HTTP server instance.
  */
-function startServer() {
+function startServer(): Promise<import('node:http').Server> {
   const server = createServer(async (req, res) => {
-    const url = new URL(req.url, 'http://localhost');
+    const url = new URL(req.url ?? '/', 'http://localhost');
     const file = url.pathname === '/' ? '/broken-page.html' : url.pathname;
 
     if (file.startsWith('/api/')) {
@@ -42,7 +42,11 @@ function startServer() {
 }
 
 const server = await startServer();
-const { port } = server.address();
+const address = server.address();
+if (!address || typeof address === 'string') {
+  throw new Error('Failed to determine demo server address');
+}
+const { port } = address;
 const url = `http://127.0.0.1:${port}/`;
 
 console.log(chalk.bold.cyan('\n Page Doctor - demo\n'));
