@@ -2,7 +2,7 @@ import 'dotenv/config';
 
 console.log('\n Checking setup...\n');
 
-const checks = [];
+const checks: boolean[] = [];
 
 const nodeVersion = process.version;
 const majorVersion = parseInt(nodeVersion.slice(1).split('.')[0], 10);
@@ -39,7 +39,7 @@ try {
 
 const provider = (process.env.AI_PROVIDER || 'gemini').toLowerCase();
 
-const KEY_FOR_PROVIDER = {
+const KEY_FOR_PROVIDER: Record<string, { env: string; url: string }> = {
   gemini: { env: 'GEMINI_API_KEY', url: 'https://aistudio.google.com/apikey' },
   openai: { env: 'OPENAI_API_KEY', url: 'https://platform.openai.com/api-keys' },
   anthropic: { env: 'ANTHROPIC_API_KEY', url: 'https://platform.claude.com/' },
@@ -89,8 +89,9 @@ try {
   await browser.close();
   console.log(' Chrome DevTools Protocol reachable');
   checks.push(true);
-} catch (error) {
-  console.log(' Could not open a CDP session:', error.message);
+} catch (error: unknown) {
+  const message = error instanceof Error ? error.message : 'Unknown error';
+  console.log(' Could not open a CDP session:', message);
   checks.push(false);
 }
 

@@ -1,19 +1,25 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import chalk from 'chalk';
+import type { AuditReport } from './audit.js';
+import type { AnalysisResult } from './analyze.js';
 import { formatBytes, rateAll } from './vitals.js';
 
 /**
  * Rendering helpers for presenting audit results in the terminal, Markdown, HTML, and JSON files.
  */
 
-const SEVERITY_STYLE = {
+type Severity = 'critical' | 'warning' | 'info';
+
+type StyleMap = Record<Severity, { icon: string; label: string; color: (value: string) => string }>;
+
+const SEVERITY_STYLE: StyleMap = {
   critical: { icon: '🔴', label: 'CRITICAL', color: chalk.red.bold },
   warning: { icon: '🟡', label: 'WARNING', color: chalk.yellow.bold },
   info: { icon: '🔵', label: 'INFO', color: chalk.blue.bold }
 };
 
-const RATING_COLOR = {
+const RATING_COLOR: Record<'good' | 'needs-improvement' | 'poor', (value: string) => string> = {
   good: chalk.green,
   'needs-improvement': chalk.yellow,
   poor: chalk.red
@@ -21,10 +27,8 @@ const RATING_COLOR = {
 
 /**
  * Print a human-readable console summary of the audit and AI analysis.
- * @param {object} audit - The structured audit data.
- * @param {object} analysis - The AI-generated findings and verdict.
  */
-export function printReport(audit, analysis) {
+export function printReport(audit: AuditReport, analysis: AnalysisResult): void {
   console.log(chalk.bold.cyan(`\n ${audit.title || audit.url}`));
   console.log(chalk.gray(`   ${audit.url}`));
   console.log(chalk.gray(`   Tested on: ${audit.conditions.throttle}\n`));
@@ -72,7 +76,7 @@ export function printReport(audit, analysis) {
   console.log(chalk.bold(`\nFindings (${analysis.findings.length})\n`));
 
   analysis.findings.forEach((finding, index) => {
-    const style = SEVERITY_STYLE[finding.severity] ?? SEVERITY_STYLE.info;
+    const style = SEVERITY_STYLE[finding.severity as Severity] ?? SEVERITY_STYLE.info;
     console.log(`${style.icon} ${style.color(`${index + 1}. ${finding.title}`)}`);
     console.log(chalk.gray(`   evidence: ${finding.evidence}`));
     console.log(`   ${chalk.bold('fix:')} ${finding.fix}`);
@@ -82,12 +86,9 @@ export function printReport(audit, analysis) {
 
 /**
  * Convert the audit and analysis into a Markdown report.
- * @param {object} audit - The structured audit data.
- * @param {object} analysis - The AI-generated findings and verdict.
- * @returns {string} A Markdown document ready to save or share.
  */
-export function toMarkdown(audit, analysis) {
-  const lines = [];
+export function toMarkdown(audit: AuditReport, analysis: AnalysisResult): string {
+  const lines: string[] = [];
 
   lines.push(`# Page audit: ${audit.title || audit.url}`, '');
   lines.push(`**URL:** <${audit.url}>  `);
@@ -138,7 +139,7 @@ export function toMarkdown(audit, analysis) {
 
   lines.push(`## Findings (${analysis.findings.length})`, '');
   analysis.findings.forEach((finding, index) => {
-    const style = SEVERITY_STYLE[finding.severity] ?? SEVERITY_STYLE.info;
+    const style = SEVERITY_STYLE[finding.severity as Severity] ?? SEVERITY_STYLE.info;
     lines.push(`### ${index + 1}. ${style.icon} ${finding.title}`, '');
     lines.push(`**Severity:** ${finding.severity} · **Category:** ${finding.category}`, '');
     lines.push(`**Evidence:** ${finding.evidence}`, '');
@@ -149,12 +150,9 @@ export function toMarkdown(audit, analysis) {
   const { errors, messages, browserWarnings } = audit.console;
   if (errors.length || messages.length || browserWarnings.length) {
     lines.push('## Console', '');
-    for (const error of errors)
-      lines.push(`-  **Uncaught** \`${error.source ?? ''}\` - ${error.text}`);
-    for (const message of messages)
-      lines.push(`- ${message.level} \`${message.source ?? ''}\` - ${message.text}`);
-    for (const warning of browserWarnings)
-      lines.push(`- browser ${warning.level} (${warning.source}) - ${warning.text}`);
+    for (const error of errors) lines.push(`-  **Uncaught** \`${error.source ?? ''}\` - ${error.text}`);
+    for (const message of messages) lines.push(`- ${message.level} \`${message.source ?? ''}\` - ${message.text}`);
+    for (const warning of browserWarnings) lines.push(`- browser ${warning.level} (${warning.source}) - ${warning.text}`);
     lines.push('');
   }
 
@@ -169,10 +167,8 @@ export function toMarkdown(audit, analysis) {
 
 /**
  * Escape a string for safe inclusion in an HTML document.
- * @param {string} str - The raw text to escape.
- * @returns {string} An HTML-safe string.
  */
-const escapeHTML = str =>
+const escapeHTML = (str: string | number | boolean | null | undefined): string =>
   String(str)
     .replace(/&/g, '&amp;')
     .replace(/</g, '&lt;')
@@ -181,11 +177,8 @@ const escapeHTML = str =>
 
 /**
  * Build a standalone HTML report from the audit and analysis data.
- * @param {object} audit - The structured audit data.
- * @param {object} analysis - The AI-generated findings and verdict.
- * @returns {string} A complete HTML page.
  */
-export function toHTML(audit, analysis) {
+export function toHTML(audit: AuditReport, analysis: AnalysisResult): string {
   const vitalRows = rateAll(audit.vitals)
     .map(
       row => `<div class="metric ${row.rating}">
@@ -298,12 +291,12 @@ export function toHTML(audit, analysis) {
 
 /**
  * Save the Markdown, HTML, and JSON versions of a report to disk.
- * @param {object} audit - The structured audit data.
- * @param {object} analysis - The AI-generated findings and verdict.
- * @param {string} [outputDir='reports'] - The folder where the report files should be written.
- * @returns {Promise<object>} The paths to the generated report files.
  */
-export async function saveReport(audit, analysis, outputDir = 'reports') {
+export async function saveReport(
+  audit: AuditReport,
+  analysis: AnalysisResult,
+  outputDir = 'reports'
+): Promise<{ markdown: string; html: string; json: string }> {
   await fs.mkdir(outputDir, { recursive: true });
 
   const slug = `${slugify(audit.url)}-${Date.now()}`;
@@ -320,10 +313,8 @@ export async function saveReport(audit, analysis, outputDir = 'reports') {
 
 /**
  * Create a safe file name slug from a URL.
- * @param {string} url - The page URL.
- * @returns {string} A filesystem-safe slug for report files.
  */
-function slugify(url) {
+function slugify(url: string): string {
   try {
     const { hostname, pathname } = new URL(url);
     return `${hostname}${pathname}`

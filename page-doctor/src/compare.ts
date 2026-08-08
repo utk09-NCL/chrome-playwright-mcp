@@ -1,18 +1,20 @@
 import { fileURLToPath } from 'node:url';
 import chalk from 'chalk';
 import { auditPage, THROTTLE_PRESETS } from './audit.js';
-import { formatValue, rate, THRESHOLDS } from './vitals.js';
+import type { AuditReport } from './audit.js';
+import { formatValue, rate, THRESHOLDS, type MetricName } from './vitals.js';
+import type { ThrottlePresetName } from './constants.js';
 
-const COMPARED = ['lcpMs', 'fcpMs', 'totalBlockingMs', 'cls', 'ttfbMs'];
+const COMPARED: MetricName[] = ['lcpMs', 'fcpMs', 'totalBlockingMs', 'cls', 'ttfbMs'];
 
 /**
  * Compare page metrics across two throttling presets and print the differences.
- * @param {string} url - The page URL to audit.
- * @param {string} [fromPreset='none'] - The baseline throttling preset.
- * @param {string} [toPreset='mobile'] - The comparison throttling preset.
- * @returns {Promise<{before: object, after: object}>} The audit results for both runs.
  */
-export async function compareThrottling(url, fromPreset = 'none', toPreset = 'mobile') {
+export async function compareThrottling(
+  url: string,
+  fromPreset: ThrottlePresetName = 'none',
+  toPreset: ThrottlePresetName = 'mobile'
+): Promise<{ before: AuditReport; after: AuditReport }> {
   console.log(chalk.bold.cyan('\n Comparing network + CPU conditions\n'));
 
   const before = await auditPage(url, { throttle: fromPreset, settleMs: 2500 });
@@ -39,7 +41,7 @@ export async function compareThrottling(url, fromPreset = 'none', toPreset = 'mo
 
     const times = a > 0 ? b / a : 0;
 
-    let changeText;
+    let changeText: string;
     let changeColor = chalk.gray;
 
     if (a === 0 && b === 0) {
@@ -85,12 +87,10 @@ export async function compareThrottling(url, fromPreset = 'none', toPreset = 'mo
 
 /**
  * Parse CLI arguments into a target URL and option values.
- * @param {string[]} argv - The raw command-line arguments.
- * @returns {{url: string|null, options: object}} Parsed URL and option values.
  */
-function parseArgs(argv) {
-  const options = {};
-  let url = null;
+function parseArgs(argv: string[]): { url: string | null; options: Record<string, string> } {
+  const options: Record<string, string> = {};
+  let url: string | null = null;
   for (const arg of argv) {
     if (arg.startsWith('--')) {
       const [key, value = 'true'] = arg.slice(2).split('=');
@@ -114,8 +114,8 @@ if (process.argv[1] === fileURLToPath(import.meta.url)) {
     process.exit(1);
   }
 
-  const from = options.from ?? 'none';
-  const to = options.to ?? 'mobile';
+  const from = (options.from ?? 'none') as ThrottlePresetName;
+  const to = (options.to ?? 'mobile') as ThrottlePresetName;
 
   for (const preset of [from, to]) {
     if (!(preset in THROTTLE_PRESETS)) {
@@ -127,8 +127,9 @@ if (process.argv[1] === fileURLToPath(import.meta.url)) {
 
   try {
     await compareThrottling(url, from, to);
-  } catch (error) {
-    console.error(chalk.red('\n Error:'), error.message);
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : 'Unknown error';
+    console.error(chalk.red('\n Error:'), message);
     process.exit(1);
   }
 }

@@ -1,7 +1,26 @@
 import { askAI } from './ai.js';
+import type { AuditReport } from './audit.js';
 import { formatBytes, rateAll } from './vitals.js';
 
-const FINDINGS_SCHEMA = {
+export type Severity = 'critical' | 'warning' | 'info';
+export type Category = 'performance' | 'javascript' | 'network' | 'best-practice';
+
+export interface Finding {
+  title: string;
+  severity: Severity;
+  category: Category;
+  evidence: string;
+  fix: string;
+  impact: string;
+}
+
+export interface AnalysisResult {
+  verdict: string;
+  findings: Finding[];
+  digest: string;
+}
+
+const FINDINGS_SCHEMA: Record<string, unknown> = {
   type: 'object',
   properties: {
     verdict: { type: 'string' },
@@ -50,11 +69,9 @@ Rules:
 
 /**
  * Turn an audit object into a compact text digest for the AI analyzer.
- * @param {object} audit - The structured page audit data.
- * @returns {string} A plain-text summary of the audit for the model.
  */
-function buildDigest(audit) {
-  const lines = [];
+function buildDigest(audit: AuditReport): string {
+  const lines: string[] = [];
 
   lines.push(`URL: ${audit.url}`);
   if (audit.title) lines.push(`Title: ${audit.title}`);
@@ -122,18 +139,13 @@ function buildDigest(audit) {
     `  CSS: ${audit.coverage.css.unusedPercent}% unused ` +
       `(${formatBytes(audit.coverage.css.unusedBytes)} of ${formatBytes(audit.coverage.css.totalBytes)})`
   );
-  for (const file of [...audit.coverage.js.worstFiles, ...audit.coverage.css.worstFiles].slice(
-    0,
-    6
-  )) {
+  for (const file of [...audit.coverage.js.worstFiles, ...audit.coverage.css.worstFiles].slice(0, 6)) {
     lines.push(`  ${file.unusedPercent}% unused (${formatBytes(file.unusedBytes)}) - ${file.url}`);
   }
 
   lines.push('', 'DOM:');
   lines.push(`  ${audit.dom.nodes} nodes, ${audit.dom.jsHeapMb} MB JS heap`);
-  lines.push(
-    `  ${audit.dom.layoutCount} layouts, ${audit.dom.recalcStyleCount} style recalculations`
-  );
+  lines.push(`  ${audit.dom.layoutCount} layouts, ${audit.dom.recalcStyleCount} style recalculations`);
 
   const { errors, messages, browserWarnings } = audit.console;
   if (errors.length || messages.length || browserWarnings.length) {
@@ -156,10 +168,8 @@ function buildDigest(audit) {
 
 /**
  * Send an audit digest to the AI model and return ranked findings.
- * @param {object} audit - The structured page audit data.
- * @returns {Promise<{verdict: string, findings: Array<object>, digest: string}>} The analysis result.
  */
-export async function analyzeAudit(audit) {
+export async function analyzeAudit(audit: AuditReport): Promise<AnalysisResult> {
   const digest = buildDigest(audit);
 
   console.log('Analyzing results...');
@@ -167,14 +177,13 @@ export async function analyzeAudit(audit) {
   const response = await askAI(SYSTEM_PROMPT, `Audit data:\n\n${digest}`, {
     schema: FINDINGS_SCHEMA,
     maxOutputTokens: 4096,
-    // Diagnosis should be consistent between runs
     temperature: 0.2
   });
 
   const parsed = parseJSONObject(response);
 
   const findings = Array.isArray(parsed.findings) ? parsed.findings : [];
-  const order = { critical: 0, warning: 1, info: 2 };
+  const order: Record<Severity, number> = { critical: 0, warning: 1, info: 2 };
   findings.sort((a, b) => (order[a.severity] ?? 3) - (order[b.severity] ?? 3));
 
   console.log(`${findings.length} findings\n`);
@@ -184,10 +193,8 @@ export async function analyzeAudit(audit) {
 
 /**
  * Parse JSON from an AI response that may be wrapped in Markdown code fences.
- * @param {string} text - The raw response from the AI model.
- * @returns {object} The parsed JSON object.
  */
-function parseJSONObject(text) {
+function parseJSONObject(text: string): { verdict: string; findings: Finding[] } {
   const cleaned = text
     .trim()
     .replace(/^```(?:json)?\s*/i, '')
@@ -195,13 +202,49 @@ function parseJSONObject(text) {
     .trim();
 
   try {
-    return JSON.parse(cleaned);
+    const parsed = JSON.parse(cleaned) as unknown;
+    if (!isRecord(parsed)) {
+      throw new Error('AI response did not deserialize to an object');
+    }
+
+    const verdict = typeof parsed.verdict === 'string' ? parsed.verdict : '';
+    const findings = Array.isArray(parsed.findings)
+      ? parsed.findings.filter((item): item is Finding => isFinding(item))
+      : [];
+
+    return { verdict, findings };
   } catch {
     const start = cleaned.indexOf('{');
     const end = cleaned.lastIndexOf('}');
     if (start === -1 || end <= start) {
       throw new Error(`Could not find JSON in the AI response:\n${cleaned.slice(0, 200)}...`);
     }
-    return JSON.parse(cleaned.slice(start, end + 1));
+    const parsed = JSON.parse(cleaned.slice(start, end + 1)) as unknown;
+    if (!isRecord(parsed)) {
+      throw new Error('AI response did not deserialize to an object');
+    }
+
+    const verdict = typeof parsed.verdict === 'string' ? parsed.verdict : '';
+    const findings = Array.isArray(parsed.findings)
+      ? parsed.findings.filter((item): item is Finding => isFinding(item))
+      : [];
+
+    return { verdict, findings };
   }
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null;
+}
+
+function isFinding(value: unknown): value is Finding {
+  if (!isRecord(value)) return false;
+  return (
+    typeof value.title === 'string' &&
+    (value.severity === 'critical' || value.severity === 'warning' || value.severity === 'info') &&
+    (value.category === 'performance' || value.category === 'javascript' || value.category === 'network' || value.category === 'best-practice') &&
+    typeof value.evidence === 'string' &&
+    typeof value.fix === 'string' &&
+    typeof value.impact === 'string'
+  );
 }

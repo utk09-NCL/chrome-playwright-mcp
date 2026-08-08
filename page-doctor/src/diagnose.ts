@@ -3,14 +3,25 @@ import chalk from 'chalk';
 import { analyzeAudit } from './analyze.js';
 import { auditPage, THROTTLE_PRESETS } from './audit.js';
 import { printReport, saveReport } from './report.js';
+import type { AuditReport } from './audit.js';
+import type { AnalysisResult } from './analyze.js';
+import type { ThrottlePresetName } from './constants.js';
+
+export interface DiagnoseOptions {
+  throttle?: ThrottlePresetName;
+  settleMs?: number;
+}
+
+export interface DiagnoseResult {
+  audit: AuditReport;
+  analysis: AnalysisResult;
+  files: { markdown: string; html: string; json: string };
+}
 
 /**
  * Run the full diagnosis flow: audit a page, analyze the results, print a report, and save artifacts.
- * @param {string} url - The page URL to diagnose.
- * @param {object} [options] - Optional audit settings such as throttling and settle time.
- * @returns {Promise<{audit: object, analysis: object, files: object}>} The generated audit, analysis, and report file paths.
  */
-export async function diagnose(url, options = {}) {
+export async function diagnose(url: string, options: DiagnoseOptions = {}): Promise<DiagnoseResult> {
   const audit = await auditPage(url, options);
 
   if (!audit?.vitals) {
@@ -35,12 +46,10 @@ export async function diagnose(url, options = {}) {
 
 /**
  * Parse CLI arguments into a URL plus a small options object.
- * @param {string[]} argv - The raw command-line arguments.
- * @returns {{url: string|null, options: object}} Parsed URL and option values.
  */
-function parseArgs(argv) {
-  const options = {};
-  let url = null;
+function parseArgs(argv: string[]): { url: string | null; options: Record<string, string> } {
+  const options: Record<string, string> = {};
+  let url: string | null = null;
 
   for (const arg of argv) {
     if (arg.startsWith('--')) {
@@ -85,11 +94,12 @@ if (process.argv[1] === fileURLToPath(import.meta.url)) {
 
   try {
     await diagnose(url, {
-      throttle: options.throttle ?? 'mobile',
+      throttle: (options.throttle ?? 'mobile') as ThrottlePresetName,
       settleMs: options.settle ? Number(options.settle) : 3000
     });
-  } catch (error) {
-    console.error(chalk.red('\nError:'), error.message);
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : 'Unknown error';
+    console.error(chalk.red('\nError:'), message);
     process.exit(1);
   }
 }
