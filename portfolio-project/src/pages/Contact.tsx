@@ -1,38 +1,38 @@
-import type { SubmitEvent } from 'react'
-import { useState } from 'react'
+import type { SubmitEvent } from 'react';
+import { useState } from 'react';
 
-type Errors = { name?: string; email?: string; message?: string }
+type Errors = { name?: string; email?: string; message?: string };
 
-const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 export default function Contact() {
-  const [name, setName] = useState('')
-  const [email, setEmail] = useState('')
-  const [message, setMessage] = useState('')
-  const [errors, setErrors] = useState<Errors>({})
-  const [status, setStatus] = useState<'idle' | 'sending' | 'sent'>('idle')
+  const [name, setName] = useState('');
+  const [email, setEmail] = useState('');
+  const [message, setMessage] = useState('');
+  const [errors, setErrors] = useState<Errors>({});
+  const [status, setStatus] = useState<'idle' | 'sending' | 'sent'>('idle');
 
   function validate(): Errors {
-    const found: Errors = {}
-    if (name.trim() === '') found.name = 'Name is required'
-    if (email.trim() === '') found.email = 'Email is required'
-    else if (!EMAIL_PATTERN.test(email.trim())) found.email = 'Enter a valid email address'
-    if (message.trim().length < 10) found.message = 'Message must be at least 10 characters'
-    return found
+    const found: Errors = {};
+    if (name.trim() === '') found.name = 'Name is required';
+    if (email.trim() === '') found.email = 'Email is required';
+    else if (!EMAIL_PATTERN.test(email.trim())) found.email = 'Enter a valid email address';
+    if (message.trim().length < 10) found.message = 'Message must be at least 10 characters';
+    return found;
   }
 
   async function handleSubmit(event: SubmitEvent<HTMLFormElement>) {
-    event.preventDefault()
-    const found = validate()
-    setErrors(found)
-    if (Object.keys(found).length > 0) return
+    event.preventDefault();
+    const found = validate();
+    setErrors(found);
+    if (Object.keys(found).length > 0) return;
 
-    setStatus('sending')
-    await new Promise((resolve) => setTimeout(resolve, 900))
-    setStatus('sent')
-    setName('')
-    setEmail('')
-    setMessage('')
+    setStatus('sending');
+    await new Promise(resolve => setTimeout(resolve, 900));
+    setStatus('sent');
+    setName('');
+    setEmail('');
+    setMessage('');
   }
 
   return (
@@ -47,7 +47,7 @@ export default function Contact() {
             id="name"
             name="name"
             value={name}
-            onChange={(event) => setName(event.target.value)}
+            onChange={event => setName(event.target.value)}
           />
           {errors.name && (
             <p className="error" role="alert" data-testid="error-name">
@@ -63,7 +63,7 @@ export default function Contact() {
             name="email"
             type="email"
             value={email}
-            onChange={(event) => setEmail(event.target.value)}
+            onChange={event => setEmail(event.target.value)}
           />
           {errors.email && (
             <p className="error" role="alert" data-testid="error-email">
@@ -79,7 +79,7 @@ export default function Contact() {
             name="message"
             rows={5}
             value={message}
-            onChange={(event) => setMessage(event.target.value)}
+            onChange={event => setMessage(event.target.value)}
           />
           {errors.message && (
             <p className="error" role="alert" data-testid="error-message">
@@ -104,5 +104,5 @@ export default function Contact() {
         </div>
       )}
     </div>
-  )
+  );
 }

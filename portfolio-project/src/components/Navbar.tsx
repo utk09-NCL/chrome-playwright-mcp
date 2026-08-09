@@ -1,11 +1,11 @@
-import { NavLink } from 'react-router'
-import ThemeToggle from './ThemeToggle'
+import { NavLink } from 'react-router';
+import ThemeToggle from './ThemeToggle';
 
 const links = [
   { to: '/', label: 'Home' },
   { to: '/projects', label: 'Projects' },
-  { to: '/contact', label: 'Contact' },
-]
+  { to: '/contact', label: 'Contact' }
+];
 
 export default function Navbar() {
   return (
@@ -15,7 +15,7 @@ export default function Navbar() {
       </NavLink>
       <nav aria-label="Main">
         <ul className="nav-links">
-          {links.map((link) => (
+          {links.map(link => (
             <li key={link.to}>
               <NavLink
                 to={link.to}
@@ -30,5 +30,5 @@ export default function Navbar() {
       </nav>
       <ThemeToggle />
     </header>
-  )
+  );
 }

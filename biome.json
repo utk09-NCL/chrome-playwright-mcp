@@ -69,6 +69,16 @@
           "types": "recommended"
         }
       }
+    },
+    {
+      "includes": ["portfolio-project/public/**/*.svg"],
+      "linter": {
+        "rules": {
+          "a11y": {
+            "noSvgWithoutTitle": "off"
+          }
+        }
+      }
     }
   ]
 }

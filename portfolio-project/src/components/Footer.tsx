@@ -6,5 +6,5 @@ export default function Footer() {
         GitHub
       </a>
     </footer>
-  )
+  );
 }

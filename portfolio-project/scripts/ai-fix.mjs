@@ -31,7 +31,7 @@ if (!API_KEY) {
   process.exit(1);
 }
 
-const ANSI = new RegExp(String.fromCharCode(27) + '\\[[0-9;]*m', 'g');
+const ANSI = new RegExp(`${String.fromCharCode(27)}\\[[0-9;]*m`, 'g');
 
 function stripAnsi(value) {
   return value.replace(ANSI, '');

@@ -1,4 +1,4 @@
-import type { Project } from '../data/projects'
+import type { Project } from '../data/projects';
 
 export default function ProjectCard({ project }: { project: Project }) {
   return (
@@ -7,7 +7,7 @@ export default function ProjectCard({ project }: { project: Project }) {
       <p className="card-year">{project.year}</p>
       <p className="card-description">{project.description}</p>
       <ul className="tag-list">
-        {project.tags.map((tag) => (
+        {project.tags.map(tag => (
           <li key={tag} className="tag">
             {tag}
           </li>
@@ -17,5 +17,5 @@ export default function ProjectCard({ project }: { project: Project }) {
         View source
       </a>
     </article>
-  )
+  );
 }
