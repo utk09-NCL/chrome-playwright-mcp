@@ -60,6 +60,15 @@
       "formatter": {
         "enabled": false
       }
+    },
+    {
+      "includes": ["portfolio-project/**"],
+      "linter": {
+        "domains": {
+          "react": "recommended",
+          "types": "recommended"
+        }
+      }
     }
   ]
 }
