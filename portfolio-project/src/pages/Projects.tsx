@@ -1,23 +1,23 @@
-import { useMemo, useState } from 'react'
-import ProjectCard from '../components/ProjectCard'
-import { allTags, projects } from '../data/projects'
+import { useMemo, useState } from 'react';
+import ProjectCard from '../components/ProjectCard';
+import { allTags, projects } from '../data/projects';
 
 export default function Projects() {
-  const [query, setQuery] = useState('')
-  const [activeTag, setActiveTag] = useState('All')
+  const [query, setQuery] = useState('');
+  const [activeTag, setActiveTag] = useState('All');
 
   const visible = useMemo(() => {
-    const term = query.trim().toLowerCase()
-    return projects.filter((project) => {
-      const matchesTag = activeTag === 'All' || project.tags.includes(activeTag)
+    const term = query.trim().toLowerCase();
+    return projects.filter(project => {
+      const matchesTag = activeTag === 'All' || project.tags.includes(activeTag);
       const matchesQuery =
         term === '' ||
         project.title.toLowerCase().includes(term) ||
         project.description.toLowerCase().includes(term) ||
-        project.tags.some((tag) => tag.toLowerCase().includes(term))
-      return matchesTag && matchesQuery
-    })
-  }, [query, activeTag])
+        project.tags.some(tag => tag.toLowerCase().includes(term));
+      return matchesTag && matchesQuery;
+    });
+  }, [query, activeTag]);
 
   return (
     <div className="page">
@@ -32,10 +32,10 @@ export default function Projects() {
           aria-label="Search projects"
           data-testid="project-search"
           value={query}
-          onChange={(event) => setQuery(event.target.value)}
+          onChange={event => setQuery(event.target.value)}
         />
         <div className="tag-filters">
-          {['All', ...allTags].map((tag) => (
+          {['All', ...allTags].map(tag => (
             <button
               key={tag}
               type="button"
@@ -60,11 +60,11 @@ export default function Projects() {
         </p>
       ) : (
         <div className="grid" data-testid="project-grid">
-          {visible.map((project) => (
+          {visible.map(project => (
             <ProjectCard key={project.id} project={project} />
           ))}
         </div>
       )}
     </div>
-  )
+  );
 }

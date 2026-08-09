@@ -1,10 +1,10 @@
-import { Route, Routes } from 'react-router'
-import Footer from './components/Footer'
-import Navbar from './components/Navbar'
-import Contact from './pages/Contact'
-import Home from './pages/Home'
-import NotFound from './pages/NotFound'
-import Projects from './pages/Projects'
+import { Route, Routes } from 'react-router';
+import Footer from './components/Footer';
+import Navbar from './components/Navbar';
+import Contact from './pages/Contact';
+import Home from './pages/Home';
+import NotFound from './pages/NotFound';
+import Projects from './pages/Projects';
 
 export default function App() {
   return (
@@ -20,5 +20,5 @@ export default function App() {
       </main>
       <Footer />
     </div>
-  )
+  );
 }

@@ -1,12 +1,12 @@
-import { Link } from 'react-router'
-import ProjectCard from '../components/ProjectCard'
-import { projects } from '../data/projects'
+import { Link } from 'react-router';
+import ProjectCard from '../components/ProjectCard';
+import { projects } from '../data/projects';
 
 const stats = [
   { label: 'Projects shipped', value: '24' },
   { label: 'Years experience', value: '6' },
-  { label: 'Open-source PRs', value: '18' },
-]
+  { label: 'Open-source PRs', value: '18' }
+];
 
 export default function Home() {
   return (
@@ -28,7 +28,7 @@ export default function Home() {
       </section>
 
       <section className="stats" aria-label="Career stats">
-        {stats.map((stat) => (
+        {stats.map(stat => (
           <div key={stat.label} className="stat">
             <span className="stat-value">{stat.value}</span>
             <span className="stat-label">{stat.label}</span>
@@ -39,11 +39,11 @@ export default function Home() {
       <section className="featured">
         <h2>Featured projects</h2>
         <div className="grid" data-testid="featured-grid">
-          {projects.slice(0, 3).map((project) => (
+          {projects.slice(0, 3).map(project => (
             <ProjectCard key={project.id} project={project} />
           ))}
         </div>
       </section>
     </div>
-  )
+  );
 }

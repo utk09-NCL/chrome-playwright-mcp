@@ -60,6 +60,25 @@
       "formatter": {
         "enabled": false
       }
+    },
+    {
+      "includes": ["portfolio-project/**"],
+      "linter": {
+        "domains": {
+          "react": "recommended",
+          "types": "recommended"
+        }
+      }
+    },
+    {
+      "includes": ["portfolio-project/public/**/*.svg"],
+      "linter": {
+        "rules": {
+          "a11y": {
+            "noSvgWithoutTitle": "off"
+          }
+        }
+      }
     }
   ]
 }
